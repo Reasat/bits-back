@@ -2,6 +2,7 @@ import numpy as np
 from scipy.stats import norm, beta, binom
 from scipy.special import gammaln
 import rans
+import matplotlib.pyplot as plt
 
 
 # ----------------------------------------------------------------------------
@@ -20,6 +21,8 @@ uniform_dec_statfun = lambda cf: (cf, (cf, 1))
 def uniforms_append(precision):
     append_fun = rans.append_symbol(uniform_enc_statfun, precision)
     def append(state, symbols):
+        print('uniforms_append input symbols',symbols.shape)
+        print(symbols[:50])
         for symbol in reversed(symbols):
             state = append_fun(state, symbol)
         return state
@@ -32,6 +35,8 @@ def uniforms_pop(precision, n):
         for i in range(n):
             state, symbol = pop_fun(state)
             symbols.append(symbol)
+        print('uni_pop: popped symbols shape', np.asarray(symbols).shape)
+        print(symbols[:50])
         return state, np.asarray(symbols)
     return pop
 
@@ -52,6 +57,8 @@ def non_uniform_dec_statfun(ppf, cdf):
 
 def non_uniforms_append(precision, cdfs):
     def append(state, symbols):
+        print('non_uniforms_append input symbols',symbols.shape)
+        print(symbols[:50])
         for symbol, cdf in reversed(list(zip(symbols, cdfs))):
             statfun = non_uniform_enc_statfun(cdf)
             state = rans.append_symbol(statfun, precision)(state, symbol)
@@ -64,7 +71,10 @@ def non_uniforms_pop(precision, ppfs, cdfs):
         for ppf, cdf in zip(ppfs, cdfs):
             statfun = non_uniform_dec_statfun(ppf, cdf)
             state, symbol = rans.pop_symbol(statfun, precision)(state)
+
             symbols.append(symbol)
+        print('non_uni_pop: popped symbols shape', np.asarray(symbols).shape)
+        print(symbols[:50])
         return state, np.asarray(symbols)
     return pop
 
@@ -151,9 +161,19 @@ def beta_latent_ppf(
 # ----------------------------------------------------------------------------
 def bb_ans_append(post_pop, lik_append, prior_append):
     def append(state, data):
+        print('appending data', data.shape)
+        plt.imshow(data.reshape(28,28))
+        plt.show()
+        print('post_pop')
+   #     print(state[0])
         state, latent = post_pop(data)(state)
+        print('lik_append')
+  #      print(state[0], latent)
         state = lik_append(latent)(state, data)
+ #       print(state[0])
+        print('prior_append')
         state = prior_append(state, latent)
+#        print(state[0])
         return state
     return append
 
@@ -164,7 +184,7 @@ def bb_ans_pop(prior_pop, lik_pop, post_append):
         state = post_append(data)(state, latent)
         return state, data
     return pop
-
+import skimage.io as io
 def vae_append(latent_shape, gen_net, rec_net, obs_append, prior_prec=8,
                latent_prec=12):
     """
@@ -181,8 +201,12 @@ def vae_append(latent_shape, gen_net, rec_net, obs_append, prior_prec=8,
         return non_uniforms_pop(latent_prec, ppfs, cdfs)
 
     def lik_append(latent_idxs):
+        print('input latent_idx', latent_idxs.shape, latent_idxs)
         y = std_gaussian_centres(prior_prec)[latent_idxs]
         obs_params = gen_net(np.reshape(y, latent_shape))
+        print('transformed the latent_idx through a generator to obs_params: \n', len(obs_params),obs_params[0].shape, obs_params[0][0][:10])
+#         io.imsave('obs_param_0.png',(obs_params[0]).reshape((28,28)))
+#         io.imsave('obs_param_1.png',(obs_params[1]).reshape((28,28)))
         return obs_append(obs_params)
 
     prior_append = uniforms_append(prior_prec)
@@ -238,9 +262,18 @@ def categoricals_append(probs, precision):
     """Assume that the last dim of probs contains the probability vectors,
     i.e. np.sum(probs, axis=-1) == ones"""
     # Flatten all but last dim of probs
+    print('categoricals_append:')
+    print('input probs ', probs.shape, probs[0][:10] )
     probs = np.reshape(probs, (-1, np.shape(probs)[-1]))
+    print('probs after reshaping', probs.shape)
     cdfs = [categorical_cdf(p, precision) for p in probs]
+    print('extracting cdf bucket creating functions from probs and passing it to non_uniform append')
+    print('cdfs',np.shape(cdfs))
+#     print(cdfs[:50])
     def append(state, data):
+        print('categoricals_append-->append-->data')
+        plt.imshow(data.reshape(28,28))
+        plt.show()
         data = np.ravel(data)
         return non_uniforms_append(precision, cdfs)(state, data)
     return append
@@ -295,7 +328,11 @@ def generate_beta_binomial_probs(a, b, n):
 
 def beta_binomials_append(a, b, n, precision):
     # TODO: Implement this using bits-back instead of generic discrete distrn.
+    print('beta_binomials_append: \nappending the obs_params')
+    print('a {},\nb {},\nn {},\nprecision {}:'.format(a[0][:10],b[0][:10],n,precision))
+    print('creating beta binomial probabilities from obs_params')
     probs = generate_beta_binomial_probs(a, b, n)
+    print(' generate_beta_binomial_probs : ', probs.shape, probs[0][:10])
     return categoricals_append(probs, precision)
 
 def beta_binomials_pop(a, b, n, precision):

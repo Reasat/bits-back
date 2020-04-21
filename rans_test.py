@@ -6,7 +6,8 @@ rng = np.random.RandomState(0)
 
 
 def test_rans():
-    x = rans.x_init
+    #x = rans.x_init
+    x=[0,(1,())]
     scale_bits = 8
     starts = rng.randint(0, 256, size=1000)
     freqs = rng.randint(1, 256, size=1000) % (256 - starts)
@@ -39,4 +40,6 @@ def test_flatten_unflatten():
     state_ = rans.unflatten(flat)
     flat_ = rans.flatten(state_)
     assert np.all(flat == flat_)
-    assert state == state_
+    assert state == state
+if __name__=="__main__":
+    test_rans()

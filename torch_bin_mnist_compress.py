@@ -10,6 +10,7 @@ from torch_vae import tvae_utils
 from torchvision import datasets, transforms
 from torch.distributions import Bernoulli
 import time
+from functools import reduce
 rng = np.random.RandomState(0)
 np.seterr(all='raise')
 
@@ -66,6 +67,10 @@ if __name__ == '__main__':
     encode_start_time = time.time()
     for i, image in enumerate(images):
         state = vae_append(state, image)
+        if i==0:
+            break
+    '''  
+    for i, image in enumerate(images):
 
         if not i % print_interval:
             print('Encoded {}'.format(i))
@@ -100,3 +105,4 @@ if __name__ == '__main__':
 
     recovered_bits = rans.flatten(state)
     assert all(other_bits == recovered_bits)
+    '''

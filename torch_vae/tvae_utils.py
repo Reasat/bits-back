@@ -43,8 +43,10 @@ def bernoulli_obs_pop(precision):
 
 def beta_binomial_obs_append(n, precision):
     def obs_append(params):
+        
         a, b = params
         def append(state, data):
+            
             return util.beta_binomials_append(a, b, n, precision)(
                 state, np.int64(data))
         return append

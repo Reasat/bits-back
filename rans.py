@@ -43,7 +43,7 @@ The number `start` represents the beginning of the interval corresponding to
 """
 import numpy as np
 from functools import reduce
-
+import util
 
 head_precision = 64
 tail_precision = 32
@@ -108,5 +108,19 @@ def flatten(msg):
 
 def unflatten(arr):
     """Unflatten a 1d numpy array into a rANS message."""
+    #print(int(arr[0])<<32)
+    #print(int(arr[1]))
     return (int(arr[0]) << 32 | int(arr[1]),
             reduce(lambda tl, hd: (int(hd), tl), reversed(arr[2:]), ()))
+
+if __name__=="__main__":
+    rng = np.random.RandomState(0)
+    #other_bits=rng.randint(low=1 << 2, high=1 << 4, size=20, dtype=np.uint32)
+    other_bits = [1,4,1,1,4,1,4,1,4,1]
+    state = unflatten(other_bits)
+    print(other_bits)
+    print(state)
+    print(flatten(state))
+    
+  
+
